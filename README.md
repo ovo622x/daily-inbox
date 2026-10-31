@@ -42,7 +42,7 @@
 ## 安装
 
 ```bash
-git clone https://github.com/<your-name>/daily-inbox.git
+git clone https://github.com/ovo622x/daily-inbox.git
 cd daily-inbox
 pip install -r requirements.txt
 python run.py --open
