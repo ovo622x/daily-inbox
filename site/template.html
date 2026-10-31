@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="今日通知">
+<meta name="theme-color" content="#F4F3F0">
+<title>今日通知</title>
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:#F4F3F0;color:#1C1C1A;
+  font-family:"Source Han Sans SC","SourceHanSansSC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(40px + env(safe-area-inset-bottom));
+}
+.wrap{max-width:520px;margin:0 auto;padding:0 16px}
+
+header{
+  position:sticky;top:0;z-index:20;
+  margin:0 -16px;padding:calc(13px + env(safe-area-inset-top)) 18px 11px;
+  background:rgba(244,243,240,.76);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  backdrop-filter:blur(24px) saturate(180%);
+  border-bottom:1px solid rgba(0,0,0,.06);
+}
+.hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hd2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}
+.day{font-size:21px;font-weight:500;letter-spacing:-.01em}
+.sub{font-size:12.5px;color:#8A8A83;margin-top:3px}
+.tally{display:flex;align-items:baseline;gap:5px;flex:none}
+.tally b{font-size:20px;font-weight:500;letter-spacing:-.02em}
+.tally span{font-size:11px;color:#9C9C95}
+
+.refresh{
+  flex:none;width:34px;height:34px;border-radius:50%;
+  border:1px solid rgba(0,0,0,.07);background:rgba(255,255,255,.8);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  transition:transform .2s ease,background .2s ease;
+}
+.refresh:active{transform:scale(.9);background:#fff}
+.refresh svg{width:16px;height:16px;stroke:#4A4A45;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.refresh.spin svg{animation:spin .65s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.status{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#6E6E68;
+  padding:4px 9px;border-radius:99px;white-space:nowrap;
+  background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.06);
+}
+.chip i{width:6px;height:6px;border-radius:50%;background:#C4C4BC;flex:none}
+.chip.on i{background:#2FA84F;box-shadow:0 0 0 3px rgba(47,168,79,.14)}
+.chip.warn i{background:#DFA02F;box-shadow:0 0 0 3px rgba(223,160,47,.16)}
+.chip.off{color:#A8A8A1}
+
+.lede{font-size:13px;color:#6E6E68;line-height:1.65;padding:16px 2px 4px}
+.lede strong{color:#1C1C1A;font-weight:500}
+
+h2{
+  font-size:12px;font-weight:500;color:#9C9C95;letter-spacing:.06em;
+  margin:26px 0 10px 4px;display:flex;align-items:center;gap:8px;
+}
+h2 em{font-style:normal;color:#C4C4BC;font-weight:400;letter-spacing:0}
+
+.card{
+  position:relative;background:#fff;border-radius:18px;
+  padding:13px 14px 13px 16px;margin-bottom:9px;
+  border:1px solid rgba(0,0,0,.055);
+  box-shadow:0 1px 2px rgba(20,20,20,.035);
+  display:flex;gap:12px;align-items:flex-start;
+  transition:opacity .18s ease,transform .18s ease;
+}
+.card::before{
+  content:"";position:absolute;left:0;top:15px;bottom:15px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--c);
+}
+.body{flex:1;min-width:0}
+.meta{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#9C9C95;margin-bottom:6px}
+.src{color:#6E6E68;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%}
+.meta .t{margin-left:auto;flex:none}
+.text{font-size:13.5px;line-height:1.55;color:#1C1C1A;word-break:break-word}
+.act{
+  margin-top:9px;font-size:12.5px;line-height:1.5;color:#4A4A45;
+  background:#F8F8F5;border-radius:10px;padding:7px 10px;
+  display:flex;gap:7px;
+}
+.act::before{content:"→";color:#B4B4AC;flex:none}
+.dl{
+  display:inline-flex;align-items:center;gap:5px;margin-top:8px;
+  font-size:11.5px;font-weight:500;padding:4px 9px;border-radius:99px;
+  background:#FDF2E8;color:#B45309;
+}
+.dl.hot{background:#FDECEC;color:#C0392B}
+
+.btn{
+  flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(0,0,0,.16);
+  background:transparent;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;margin-top:1px;transition:all .18s ease;
+}
+.btn svg{opacity:0;width:14px;height:14px;transition:opacity .15s}
+.card.done{opacity:.38}
+.card.done .text{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.3)}
+.card.done .btn{background:#1C1C1A;border-color:#1C1C1A}
+.card.done .btn svg{opacity:1}
+
+details.noise{margin-top:26px}
+details.noise summary{
+  font-size:12px;color:#9C9C95;cursor:pointer;list-style:none;
+  padding:12px 4px;display:flex;align-items:center;gap:6px;
+}
+details.noise summary::-webkit-details-marker{display:none}
+details.noise summary::after{content:"展开";margin-left:auto;font-size:11px;color:#B4B4AC}
+details.noise[open] summary::after{content:"收起"}
+.nrow{
+  font-size:12.5px;color:#8A8A83;padding:9px 4px;border-top:1px solid rgba(0,0,0,.05);
+  display:flex;gap:8px;align-items:baseline;
+}
+.nrow b{font-weight:500;color:#6E6E68;flex:none;max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nrow i{font-style:normal;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nrow s{flex:none;font-size:11px;color:#C4C4BC;text-decoration:none}
+
+footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="hd">
+      <div>
+        <div class="day">__DAY__</div>
+        <div class="sub">__SUBTITLE__</div>
+      </div>
+      <button class="refresh" id="refresh" aria-label="刷新">
+        <svg viewBox="0 0 20 20"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/><path d="M16.8 3.2v3.4h-3.4"/></svg>
+      </button>
+    </div>
+    <div class="hd2">
+      <div class="status">__STATUS__</div>
+      <div class="tally"><b id="left">__LEFT__</b><span>待处理</span></div>
+    </div>
+  </header>
+
+  <p class="lede">__LEDE__</p>
+
+  __SECTIONS__
+
+  <details class="noise">
+    <summary>已过滤 __NOISE_COUNT__ 条噪音</summary>
+    __NOISE_ROWS__
+  </details>
+
+  <footer>
+    采集于 __UPDATED__ · 来源：电脑版微信 + 电脑版钉钉<br>
+    上方圆点是上次采集那一刻的登录状态。点右上角刷新可拉取最新页面。<br>
+    勾选状态存在本机，刷新不会丢。
+  </footer>
+</div>
+
+<script>
+const TOTAL = __TOTAL__;
+const KEY = "inbox-done-v1";
+
+function loadDone() {
+  try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; }
+}
+function saveDone(o) {
+  try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {}
+}
+
+let done = loadDone();
+
+function refresh() {
+  let n = 0;
+  document.querySelectorAll(".card").forEach(function (c) {
+    const id = c.dataset.id;
+    if (done[id]) { c.classList.add("done"); } else { c.classList.remove("done"); n++; }
+  });
+  document.getElementById("left").textContent = n;
+  const tallied = document.querySelectorAll(".card").length - n;
+  document.querySelector(".tally span").textContent = tallied > 0 ? "待处理·已清 " + tallied : "全清了";
+}
+
+document.querySelectorAll(".btn").forEach(function (b) {
+  b.addEventListener("click", function (e) {
+    e.stopPropagation();
+    const card = b.closest(".card");
+    const id = card.dataset.id;
+    if (done[id]) { delete done[id]; } else { done[id] = 1; }
+    saveDone(done);
+    refresh();
+  });
+});
+
+document.querySelectorAll(".card").forEach(function (c) {
+  c.addEventListener("click", function () {
+    const b = c.querySelector(".btn");
+    if (b) b.click();
+  });
+});
+
+const rb = document.getElementById("refresh");
+if (rb) {
+  rb.addEventListener("click", function () {
+    rb.classList.add("spin");
+    const u = new URL(location.href);
+    u.searchParams.set("t", Date.now());
+    setTimeout(function () { location.replace(u.toString()); }, 420);
+  });
+}
+
+refresh();
+</script>
+</body>
+</html>

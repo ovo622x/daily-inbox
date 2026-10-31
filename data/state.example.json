@@ -1,0 +1,90 @@
+{
+  "day": "11月3日 周一",
+  "updated": "2026-11-03T20:04:00",
+  "sources": {
+    "wechat": { "label": "微信", "color": "#07C160" },
+    "dingtalk": { "label": "钉钉", "color": "#3296FA" }
+  },
+  "items": [
+    {
+      "id": "d3",
+      "source": "dingtalk",
+      "from": "设计项目群",
+      "text": "[DING] 样例图请在今天中午 12 点前发到群里，客户下午要看 @所有人",
+      "action": "12 点已经过了。先单独问一句还收不收，别直接往群里发",
+      "kind": "overdue",
+      "time": "今天 09:12",
+      "deadline": "今天 12:00（已过）"
+    },
+    {
+      "id": "d1",
+      "source": "dingtalk",
+      "from": "产品部群",
+      "text": "版本评审改到周四 14:00，提前把改动说明发我",
+      "action": "写一页改动说明，周四上午前发给对方",
+      "kind": "deadline",
+      "time": "今天 15:40",
+      "deadline": "周四 14:00"
+    },
+    {
+      "id": "d2",
+      "source": "dingtalk",
+      "from": "陈小雅（HR）",
+      "text": "入职材料还差体检报告和银行卡信息，周五前补齐",
+      "action": "预约体检，顺手把银行卡信息拍了发过去",
+      "kind": "deadline",
+      "time": "今天 11:05",
+      "deadline": "本周五"
+    },
+    {
+      "id": "w1",
+      "source": "wechat",
+      "from": "老周",
+      "text": "报价单什么时候能给？客户那边在催",
+      "action": "先回个时间点，哪怕说明天，别让人干等",
+      "kind": "reply",
+      "time": "今天 16:22",
+      "deadline": null
+    },
+    {
+      "id": "w2",
+      "source": "wechat",
+      "from": "阿 May",
+      "text": "上次那组照片修好了吗",
+      "action": "看一下进度，能发就先发一部分",
+      "kind": "reply",
+      "time": "今天 14:08",
+      "deadline": null
+    },
+    {
+      "id": "w3",
+      "source": "wechat",
+      "from": "排版交流群",
+      "text": "@你 帮忙看看这版封面，字距是不是太紧了",
+      "action": "抽十分钟回个意见，别拖成已读不回",
+      "kind": "todo",
+      "time": "今天 13:30",
+      "deadline": null
+    },
+    {
+      "id": "d4",
+      "source": "dingtalk",
+      "from": "工作通知",
+      "text": "[公告] 关于开展第四季度办公区消防演练的通知",
+      "action": "点开看一眼时间，跟自己的外出安排对一下",
+      "kind": "info",
+      "time": "11-01",
+      "deadline": null
+    }
+  ],
+  "noise": [
+    { "id": "w4", "source": "wechat", "from": "家庭群", "text": "[图片]", "time": "17:02" },
+    { "id": "w5", "source": "wechat", "from": "老李", "text": "哈哈哈哈哈", "time": "16:44" },
+    { "id": "w6", "source": "wechat", "from": "公众号 · 某摄影号", "text": "今日推送：三支定焦怎么选", "time": "15:11" },
+    { "id": "w7", "source": "wechat", "from": "同学群", "text": "收到", "time": "14:20" },
+    { "id": "w8", "source": "wechat", "from": "小区团购", "text": "本周团购已开团", "time": "12:03" },
+    { "id": "d5", "source": "dingtalk", "from": "设备维护", "text": "打印机已恢复正常", "time": "10:48" },
+    { "id": "d6", "source": "dingtalk", "from": "考勤助手", "text": "今日打卡成功", "time": "09:01" },
+    { "id": "d7", "source": "dingtalk", "from": "新人入职群", "text": "王某某通过扫码加入群聊", "time": "08:55" }
+  ]
+}

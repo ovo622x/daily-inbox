@@ -1,0 +1,30 @@
+# 抓下来的聊天快照，含隐私内容，绝不入库
+data/snapshots/
+*.png
+!site/icon.png
+!site/icon-512.png
+
+# 真实提取结果
+data/state.json
+data/status.json
+
+# 生成物
+site/index.html
+
+# 运行时
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 本地工具痕迹
+.workbuddy/
+.wbapp_*.genie
+shots/
