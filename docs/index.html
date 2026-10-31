@@ -158,7 +158,7 @@ footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:
     <div class="hd">
       <div>
         <div class="day">11月3日 周一</div>
-        <div class="sub">最后更新 11-03 20:04</div>
+        <div class="sub" id="sub">识别 11-03 20:04 · 画面 17:47</div>
       </div>
       <button class="refresh" id="refresh" aria-label="刷新">
         <svg viewBox="0 0 20 20"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/><path d="M16.8 3.2v3.4h-3.4"/></svg>
@@ -263,8 +263,8 @@ footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:
   </details>
 
   <footer>
-    采集于 11-03 20:04 · 来源：电脑版微信 + 电脑版钉钉<br>
-    上方圆点是上次采集那一刻的状态，异常原因会单独标出。<br>
+    来源：电脑版微信 + 电脑版钉钉<br>
+    「识别」是模型读出待办的时间，「画面」是最近一次截屏的时间，两者会不一样。<br>
     勾掉的事项收进下面「已清」，点一下可以恢复；记录只存在这台手机上。
   </footer>
 </div>
@@ -368,8 +368,49 @@ Object.keys(done).forEach(function (id) {
 });
 
 const rb = document.getElementById("refresh");
+const subEl = document.getElementById("sub");
+const baseSub = subEl.textContent;
+
+// 只有从本机服务打开时，刷新才是真的抓取；公网链接只能重新拉页面
+const LIVE = /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(location.hostname);
+let running = false;
+
+function setSub(text) { subEl.textContent = text; }
+
+async function liveRefresh() {
+  running = true;
+  rb.classList.add("spin");
+  setSub("正在抓取窗口画面…");
+  try {
+    await fetch("/api/refresh", { cache: "no-store" });
+    const t0 = Date.now();
+    while (Date.now() - t0 < 180000) {
+      await new Promise(function (r) { setTimeout(r, 1500); });
+      const s = await (await fetch("/api/status", { cache: "no-store" })).json();
+      if (s.step && s.running) setSub(s.step + "…");
+      if (!s.running && s.finishedAt) {
+        if (s.ok) {
+          setSub("已抓取 · 识别待更新");
+          setTimeout(function () {
+            location.replace(location.pathname + "?t=" + Date.now());
+          }, 1500);
+          return;
+        }
+        setSub("抓取失败：" + (s.step || "未知原因"));
+        break;
+      }
+    }
+  } catch (e) {
+    setSub("连不上本机服务");
+  }
+  rb.classList.remove("spin");
+  running = false;
+}
+
 if (rb) {
   rb.addEventListener("click", function () {
+    if (running) return;
+    if (LIVE) { liveRefresh(); return; }
     rb.classList.add("spin");
     const u = new URL(location.href);
     u.searchParams.set("t", Date.now());

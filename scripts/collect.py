@@ -18,6 +18,19 @@ KEEP_PNGS = 80
 def main(apps=None, screens=12):
     apps = apps or ["wechat", "dingtalk"]
     os.makedirs(SHOT_DIR, exist_ok=True)
+
+    # 上一轮的截图已经识别进 state.json，先删掉：省磁盘，也少留一份聊天记录副本
+    removed = 0
+    for old in os.listdir(SHOT_DIR):
+        if old.lower().endswith(".png"):
+            try:
+                os.remove(os.path.join(SHOT_DIR, old))
+                removed += 1
+            except OSError:
+                pass
+    if removed:
+        print(f"清掉上一轮 {removed} 张截图")
+
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
     report = {"time": datetime.now().isoformat(timespec="seconds"), "shots": []}
     status = {"checkedAt": report["time"], "apps": {}}
@@ -68,7 +81,6 @@ def main(apps=None, screens=12):
         except OSError:
             pass
     return report
-
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="采集微信/钉钉窗口画面")

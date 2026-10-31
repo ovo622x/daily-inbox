@@ -104,6 +104,26 @@ def render_alert(data):
     return f'<div class="banner">{icon}<div><b>这次没抓全。</b> {esc(body)}</div></div>'
 
 
+def fmt_time(iso):
+    if not iso:
+        return "—"
+    try:
+        dt = datetime.fromisoformat(iso)
+    except Exception:
+        return str(iso)
+    if dt.date() == datetime.now().date():
+        return dt.strftime("%H:%M")
+    return dt.strftime("%m-%d %H:%M")
+
+
+def captured_at():
+    try:
+        with open(STATUS_FILE, encoding="utf-8") as fh:
+            return json.load(fh).get("checkedAt", "")
+    except Exception:
+        return ""
+
+
 def build(force_example=False, out_path=None):
     if force_example:
         src = os.path.join(ROOT, "data", "state.example.json")
@@ -168,7 +188,8 @@ def build(force_example=False, out_path=None):
                 .replace("__SECTIONS__", "\n".join(blocks))
                 .replace("__NOISE_COUNT__", str(len(noise)))
                 .replace("__NOISE_ROWS__", noise_rows)
-                .replace("__UPDATED__", esc(data.get("updated", "").replace("T", " ")[5:16]))
+                .replace("__UPDATED__", esc(fmt_time(data.get("updated", ""))))
+                .replace("__CAPTURED__", esc(fmt_time(captured_at())))
                 .replace("__TOTAL__", str(len(items))))
 
     os.makedirs(os.path.dirname(out), exist_ok=True)
