@@ -1,5 +1,6 @@
-"""抓取微信 / 钉钉窗口快照，供后续识别待办。只读，不修改应用数据。"""
+"""抓取微信 / 钉钉窗口快照，供后续识别待办。只读截图，不修改应用数据。"""
 
+import argparse
 import json
 import os
 import sys
@@ -11,9 +12,10 @@ import winctl
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOT_DIR = os.path.join(ROOT, "data", "snapshots")
 STATUS = os.path.join(ROOT, "data", "status.json")
+KEEP_PNGS = 80
 
 
-def main(apps=None):
+def main(apps=None, screens=12):
     apps = apps or ["wechat", "dingtalk"]
     os.makedirs(SHOT_DIR, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
@@ -22,25 +24,31 @@ def main(apps=None):
 
     for app in apps:
         state, detail = winctl.app_state(app)
-        entry = {"state": state, "detail": detail, "captured": False}
+        entry = {"state": state, "detail": detail, "captured": False, "screens": 0}
         win = winctl.find_main_window(app) if state == "online" else None
         if not win:
             report["shots"].append({"app": app, "ok": False, "reason": detail})
             status["apps"][app] = entry
             print(f"[{app}] {state} - {detail}")
             continue
-        out = os.path.join(SHOT_DIR, f"{app}_{stamp}.png")
+
+        def path_for(i, _app=app):
+            return os.path.join(SHOT_DIR, f"{_app}_{stamp}_p{i:02d}.png")
+
         try:
-            meta = winctl.capture(win["hwnd"], out)
-            entry["captured"] = meta["filled"] > 0.05
+            shots = winctl.scroll_capture(win["hwnd"], app, path_for,
+                                          max_screens=screens, step=700, settle=0.5)
+            entry["screens"] = len(shots)
+            entry["captured"] = bool(shots) and shots[0]["filled"] > 0.05
             if not entry["captured"]:
                 entry["state"] = "blank"
                 entry["detail"] = "画面为空，窗口可能被遮挡"
-            meta.update({"app": app, "ok": entry["captured"]})
-            if not meta["ok"]:
-                meta["reason"] = entry["detail"]
-            report["shots"].append(meta)
-            print(f"[{app}] {meta['size']} filled={meta['filled']} -> {out}")
+            elif len(shots) == 1:
+                entry["detail"] = "只采到 1 屏，列表可能已到底或滚动未生效"
+            report["shots"].append({"app": app, "ok": entry["captured"],
+                                    "screens": entry["screens"],
+                                    "files": [s["path"] for s in shots]})
+            print(f"[{app}] {entry['screens']} 屏, filled={shots[0]['filled'] if shots else 0}")
         except Exception as exc:
             entry["state"] = "error"
             entry["detail"] = str(exc)
@@ -53,9 +61,8 @@ def main(apps=None):
     with open(STATUS, "w", encoding="utf-8") as fh:
         json.dump(status, fh, ensure_ascii=False, indent=2)
 
-    keep = 40
     files = sorted(f for f in os.listdir(SHOT_DIR) if f.lower().endswith(".png"))
-    for old in files[:-keep]:
+    for old in files[:-KEEP_PNGS]:
         try:
             os.remove(os.path.join(SHOT_DIR, old))
         except OSError:
@@ -64,7 +71,11 @@ def main(apps=None):
 
 
 if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if a in ("wechat", "dingtalk")]
-    res = main(args or None)
+    ap = argparse.ArgumentParser(description="采集微信/钉钉窗口画面")
+    ap.add_argument("--app", choices=["wechat", "dingtalk"], action="append")
+    ap.add_argument("--screens", type=int, default=12, help="每个来源最多抓几屏")
+    args = ap.parse_args()
+    res = main(args.app or None, args.screens)
     ok = sum(1 for s in res["shots"] if s.get("ok"))
-    print(f"完成：{ok}/{len(res['shots'])} 张可用")
+    total = sum(s.get("screens", 0) for s in res["shots"])
+    print(f"完成：{ok}/{len(res['shots'])} 个来源可用，共 {total} 屏")

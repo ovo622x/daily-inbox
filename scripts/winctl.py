@@ -2,6 +2,7 @@
 
 import ctypes
 import ctypes.wintypes as w
+import os
 import time
 
 from PIL import Image
@@ -20,6 +21,11 @@ SW_SHOW = 5
 SW_HIDE = 0
 PW_RENDERFULLCONTENT = 2
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+MOUSEEVENTF_WHEEL = 0x0800
+
+user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
+user32.GetCursorPos.argtypes = [ctypes.POINTER(w.POINT)]
+user32.mouse_event.argtypes = [w.DWORD, w.DWORD, w.DWORD, w.DWORD, ctypes.c_void_p]
 
 user32.GetWindowDC.restype = w.HDC
 user32.GetWindowDC.argtypes = [w.HWND]
@@ -159,49 +165,107 @@ def find_main_window(app):
     return max(cands, key=lambda r: r["w"] * r["h"])
 
 
-def capture(hwnd, out_path, quiet=True):
+def _show(hwnd):
     was_iconic = bool(user32.IsIconic(hwnd))
     was_visible = bool(user32.IsWindowVisible(hwnd))
+    if not was_visible:
+        user32.ShowWindow(hwnd, SW_SHOW)
+        time.sleep(1.8)
+    if was_iconic:
+        user32.ShowWindow(hwnd, SW_RESTORE)
+        time.sleep(1.6)
+    return was_iconic, was_visible
+
+
+def _hide(hwnd, was_iconic, was_visible):
+    if was_iconic:
+        user32.ShowWindow(hwnd, SW_MINIMIZE)
+    elif not was_visible:
+        user32.ShowWindow(hwnd, SW_HIDE)
+
+
+def _snap(hwnd, out_path):
+    rect = w.RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    width, height = rect.right - rect.left, rect.bottom - rect.top
+    if width <= 0 or height <= 0:
+        raise RuntimeError(f"invalid window rect {width}x{height}")
+
+    hdc = user32.GetWindowDC(hwnd)
+    mem = gdi32.CreateCompatibleDC(hdc)
+    bmp = gdi32.CreateCompatibleBitmap(hdc, width, height)
+    gdi32.SelectObject(mem, bmp)
+    user32.PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT)
+
+    bi = BITMAPINFOHEADER()
+    bi.biSize = ctypes.sizeof(BITMAPINFOHEADER)
+    bi.biWidth = width
+    bi.biHeight = -height
+    bi.biPlanes = 1
+    bi.biBitCount = 32
+    buf = ctypes.create_string_buffer(width * height * 4)
+    gdi32.GetDIBits(mem, bmp, 0, height, buf, ctypes.byref(bi), 0)
+    img = Image.frombuffer("RGBA", (width, height), buf, "raw", "BGRA", 0, 1).convert("RGB")
+    img.save(out_path)
+
+    gdi32.DeleteObject(bmp)
+    gdi32.DeleteDC(mem)
+    user32.ReleaseDC(hwnd, hdc)
+
+    gray = img.convert("L").histogram()
+    filled = sum(gray[20:]) / (width * height)
+    return img, round(filled, 3), width, height
+
+
+def capture(hwnd, out_path, quiet=True):
+    was_iconic, was_visible = _show(hwnd)
     try:
-        if not was_visible:
-            user32.ShowWindow(hwnd, SW_SHOW)
-            time.sleep(1.8)
-        if was_iconic:
-            user32.ShowWindow(hwnd, SW_RESTORE)
-            time.sleep(1.6)
+        img, filled, width, height = _snap(hwnd, out_path)
+        return {"path": str(out_path), "size": f"{width}x{height}", "filled": filled}
+    finally:
+        if quiet:
+            _hide(hwnd, was_iconic, was_visible)
+
+
+LIST_ANCHOR = {"wechat": (0.13, 0.55), "dingtalk": (0.15, 0.58)}
+
+
+def scroll_capture(hwnd, app, out_paths, max_screens=12, step=360, settle=0.55, quiet=True):
+    """用滚轮翻会话列表，逐屏截图，不点击任何元素。
+
+    out_paths(i) 返回第 i 屏的保存路径。滚到底（画面不再变化）时提前结束。
+    """
+    was_iconic, was_visible = _show(hwnd)
+    saved = w.POINT()
+    user32.GetCursorPos(ctypes.byref(saved))
+    shots = []
+    try:
         rect = w.RECT()
         user32.GetWindowRect(hwnd, ctypes.byref(rect))
         width, height = rect.right - rect.left, rect.bottom - rect.top
-        if width <= 0 or height <= 0:
-            raise RuntimeError(f"invalid window rect {width}x{height}")
+        ax, ay = LIST_ANCHOR[app]
+        px = rect.left + int(width * ax)
+        py = rect.top + int(height * ay)
 
-        hdc = user32.GetWindowDC(hwnd)
-        mem = gdi32.CreateCompatibleDC(hdc)
-        bmp = gdi32.CreateCompatibleBitmap(hdc, width, height)
-        gdi32.SelectObject(mem, bmp)
-        user32.PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT)
+        user32.SetCursorPos(px, py)
+        for _ in range(30):
+            user32.mouse_event(MOUSEEVENTF_WHEEL, 0, 0, w.DWORD(240), 0)
+        time.sleep(settle)
 
-        bi = BITMAPINFOHEADER()
-        bi.biSize = ctypes.sizeof(BITMAPINFOHEADER)
-        bi.biWidth = width
-        bi.biHeight = -height
-        bi.biPlanes = 1
-        bi.biBitCount = 32
-        buf = ctypes.create_string_buffer(width * height * 4)
-        gdi32.GetDIBits(mem, bmp, 0, height, buf, ctypes.byref(bi), 0)
-        img = Image.frombuffer("RGBA", (width, height), buf, "raw", "BGRA", 0, 1).convert("RGB")
-        img.save(out_path)
-
-        gdi32.DeleteObject(bmp)
-        gdi32.DeleteDC(mem)
-        user32.ReleaseDC(hwnd, hdc)
-
-        gray = img.convert("L").histogram()
-        filled = sum(gray[20:]) / (width * height)
-        return {"path": str(out_path), "size": f"{width}x{height}", "filled": round(filled, 3)}
+        prev = None
+        for i in range(max_screens):
+            path = out_paths(i)
+            img, filled, _, _ = _snap(hwnd, path)
+            if prev is not None and img.size == prev.size and img.tobytes() == prev.tobytes():
+                os.remove(path)
+                break
+            shots.append({"path": str(path), "filled": filled, "screen": i})
+            prev = img
+            user32.SetCursorPos(px, py)
+            user32.mouse_event(MOUSEEVENTF_WHEEL, 0, 0, w.DWORD((-step) & 0xFFFFFFFF), 0)
+            time.sleep(settle)
     finally:
+        user32.SetCursorPos(saved.x, saved.y)
         if quiet:
-            if was_iconic:
-                user32.ShowWindow(hwnd, SW_MINIMIZE)
-            elif not was_visible:
-                user32.ShowWindow(hwnd, SW_HIDE)
+            _hide(hwnd, was_iconic, was_visible)
+    return shots

@@ -24,7 +24,7 @@ body{
 header{
   position:sticky;top:0;z-index:20;
   margin:0 -16px;padding:calc(13px + env(safe-area-inset-top)) 18px 11px;
-  background:rgba(244,243,240,.76);
+  background:rgba(244,243,240,.78);
   -webkit-backdrop-filter:blur(24px) saturate(180%);
   backdrop-filter:blur(24px) saturate(180%);
   border-bottom:1px solid rgba(0,0,0,.06);
@@ -60,6 +60,15 @@ header{
 .chip.warn i{background:#DFA02F;box-shadow:0 0 0 3px rgba(223,160,47,.16)}
 .chip.off{color:#A8A8A1}
 
+.banner{
+  display:flex;gap:8px;align-items:flex-start;
+  margin:14px 0 0;padding:10px 12px;border-radius:12px;
+  font-size:12.5px;line-height:1.55;
+  background:#FDF6E9;border:1px solid #F0DFC0;color:#7A5518;
+}
+.banner b{font-weight:500}
+.banner svg{flex:none;width:14px;height:14px;margin-top:2px;stroke:#C08A2A;fill:none;stroke-width:1.6;stroke-linecap:round}
+
 .lede{font-size:13px;color:#6E6E68;line-height:1.65;padding:16px 2px 4px}
 .lede strong{color:#1C1C1A;font-weight:500}
 
@@ -75,12 +84,20 @@ h2 em{font-style:normal;color:#C4C4BC;font-weight:400;letter-spacing:0}
   border:1px solid rgba(0,0,0,.055);
   box-shadow:0 1px 2px rgba(20,20,20,.035);
   display:flex;gap:12px;align-items:flex-start;
-  transition:opacity .18s ease,transform .18s ease;
+  max-height:340px;overflow:hidden;
+  transition:opacity .22s ease,transform .22s ease,max-height .3s ease,
+             margin .3s ease,padding .3s ease,border-width .3s ease;
 }
 .card::before{
   content:"";position:absolute;left:0;top:15px;bottom:15px;width:3px;
   border-radius:0 3px 3px 0;background:var(--c);
 }
+.card.out{opacity:0;transform:translateX(14px);max-height:0;margin-bottom:0;
+  padding-top:0;padding-bottom:0;border-width:0;overflow:hidden}
+.card.done{opacity:.5}
+.card.done .text{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.28)}
+.card.done .act{display:none}
+
 .body{flex:1;min-width:0}
 .meta{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#9C9C95;margin-bottom:6px}
 .src{color:#6E6E68;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%}
@@ -105,19 +122,18 @@ h2 em{font-style:normal;color:#C4C4BC;font-weight:400;letter-spacing:0}
   cursor:pointer;padding:0;margin-top:1px;transition:all .18s ease;
 }
 .btn svg{opacity:0;width:14px;height:14px;transition:opacity .15s}
-.card.done{opacity:.38}
-.card.done .text{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.3)}
 .card.done .btn{background:#1C1C1A;border-color:#1C1C1A}
 .card.done .btn svg{opacity:1}
 
-details.noise{margin-top:26px}
-details.noise summary{
+details.block{margin-top:26px}
+details.block > summary{
   font-size:12px;color:#9C9C95;cursor:pointer;list-style:none;
   padding:12px 4px;display:flex;align-items:center;gap:6px;
 }
-details.noise summary::-webkit-details-marker{display:none}
-details.noise summary::after{content:"展开";margin-left:auto;font-size:11px;color:#B4B4AC}
-details.noise[open] summary::after{content:"收起"}
+details.block > summary::-webkit-details-marker{display:none}
+details.block > summary::after{content:"展开";margin-left:auto;font-size:11px;color:#B4B4AC}
+details.block[open] > summary::after{content:"收起"}
+
 .nrow{
   font-size:12.5px;color:#8A8A83;padding:9px 4px;border-top:1px solid rgba(0,0,0,.05);
   display:flex;gap:8px;align-items:baseline;
@@ -125,6 +141,13 @@ details.noise[open] summary::after{content:"收起"}
 .nrow b{font-weight:500;color:#6E6E68;flex:none;max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nrow i{font-style:normal;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nrow s{flex:none;font-size:11px;color:#C4C4BC;text-decoration:none}
+
+.doneCard{padding:11px 14px 11px 16px;cursor:pointer}
+.doneCard .text{font-size:13px;color:#8A8A83}
+.doneCard .meta{margin-bottom:4px}
+.doneCard .stamp{font-size:11px;color:#B4B4AC;margin-left:auto}
+
+.empty{font-size:12.5px;color:#B4B4AC;padding:14px 4px}
 
 footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:1.8}
 </style>
@@ -135,7 +158,7 @@ footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:
     <div class="hd">
       <div>
         <div class="day">__DAY__</div>
-        <div class="sub">__SUBTITLE__</div>
+        <div class="sub">最后更新 __UPDATED__</div>
       </div>
       <button class="refresh" id="refresh" aria-label="刷新">
         <svg viewBox="0 0 20 20"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/><path d="M16.8 3.2v3.4h-3.4"/></svg>
@@ -143,29 +166,40 @@ footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:
     </div>
     <div class="hd2">
       <div class="status">__STATUS__</div>
-      <div class="tally"><b id="left">__LEFT__</b><span>待处理</span></div>
+      <div class="tally"><b id="left">__LEFT__</b><span id="leftLabel">待处理</span></div>
     </div>
   </header>
 
+  __ALERT__
+
   <p class="lede">__LEDE__</p>
 
-  __SECTIONS__
+  <div id="live">
+    __SECTIONS__
+  </div>
 
-  <details class="noise">
+  <details class="block" id="noiseBlock">
     <summary>已过滤 __NOISE_COUNT__ 条噪音</summary>
     __NOISE_ROWS__
   </details>
 
+  <details class="block" id="doneBlock">
+    <summary>已清 __DONE_INIT__ 项</summary>
+    <div id="doneList">
+      <div class="empty" id="doneEmpty">还没有勾掉的事项</div>
+    </div>
+  </details>
+
   <footer>
     采集于 __UPDATED__ · 来源：电脑版微信 + 电脑版钉钉<br>
-    上方圆点是上次采集那一刻的登录状态。点右上角刷新可拉取最新页面。<br>
-    勾选状态存在本机，刷新不会丢。
+    上方圆点是上次采集那一刻的状态，异常原因会单独标出。<br>
+    勾掉的事项收进下面「已清」，点一下可以恢复；记录只存在这台手机上。
   </footer>
 </div>
 
 <script>
+const KEY = "inbox-done-v2";
 const TOTAL = __TOTAL__;
-const KEY = "inbox-done-v1";
 
 function loadDone() {
   try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; }
@@ -174,36 +208,91 @@ function saveDone(o) {
   try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {}
 }
 
-let done = loadDone();
+const done = loadDone();
+const doneList = document.getElementById("doneList");
+const doneEmpty = document.getElementById("doneEmpty");
 
-function refresh() {
-  let left = 0;
-  document.querySelectorAll(".card").forEach(function (c) {
-    if (done[c.dataset.id]) { c.classList.add("done"); }
-    else { c.classList.remove("done"); left++; }
-  });
-  document.getElementById("left").textContent = left;
-  const cleared = TOTAL - left;
-  document.querySelector(".tally span").textContent =
-    left === 0 ? "全清了" : (cleared > 0 ? "待处理 · 已清" + cleared : "待处理");
+function clockText() {
+  const d = new Date();
+  return (d.getMonth() + 1) + "-" + d.getDate() + " " +
+         String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 
-document.querySelectorAll(".btn").forEach(function (b) {
+function buildDoneCard(card, stamp) {
+  const ghost = document.createElement("article");
+  ghost.className = "card doneCard done";
+  ghost.dataset.id = card.dataset.id;
+  ghost.style.setProperty("--c", card.style.getPropertyValue("--c"));
+  const src = card.querySelector(".src");
+  const text = card.querySelector(".text");
+  ghost.innerHTML =
+    '<div class="body">' +
+      '<div class="meta"><span class="src"></span><span class="stamp"></span></div>' +
+      '<div class="text"></div>' +
+    '</div>';
+  ghost.querySelector(".src").textContent = src ? src.textContent : "";
+  ghost.querySelector(".text").textContent = text ? text.textContent : "";
+  ghost.querySelector(".stamp").textContent = stamp || "";
+  ghost.title = "点一下可以恢复";
+  ghost.addEventListener("click", function () {
+    delete done[ghost.dataset.id];
+    saveDone(done);
+    location.reload();
+  });
+  return ghost;
+}
+
+function syncCounts() {
+  let left = 0;
+  document.querySelectorAll("#live .card").forEach(function (c) {
+    if (!done[c.dataset.id]) left++;
+  });
+  const cleared = Object.keys(done).length;
+  document.getElementById("left").textContent = left;
+  document.getElementById("leftLabel").textContent =
+    left === 0 ? "全清了" : (cleared > 0 ? "待处理 · 已清" + cleared : "待处理");
+  document.querySelector("#doneBlock > summary").textContent = "已清 " + cleared + " 项";
+  doneEmpty.style.display = cleared === 0 ? "block" : "none";
+}
+
+function moveToDone(card) {
+  const id = card.dataset.id;
+  done[id] = 1;
+  saveDone(done);
+  card.classList.add("out");
+  const stamp = clockText();
+  setTimeout(function () {
+    const ghost = buildDoneCard(card, stamp);
+    card.remove();
+    doneEmpty.style.display = "none";
+    doneList.appendChild(ghost);
+    syncCounts();
+  }, 240);
+}
+
+document.querySelectorAll("#live .btn").forEach(function (b) {
   b.addEventListener("click", function (e) {
     e.stopPropagation();
     const card = b.closest(".card");
-    const id = card.dataset.id;
-    if (done[id]) { delete done[id]; } else { done[id] = 1; }
-    saveDone(done);
-    refresh();
+    if (!card || card.classList.contains("out")) return;
+    moveToDone(card);
   });
 });
 
-document.querySelectorAll(".card").forEach(function (c) {
+document.querySelectorAll("#live .card").forEach(function (c) {
   c.addEventListener("click", function () {
     const b = c.querySelector(".btn");
     if (b) b.click();
   });
+});
+
+Object.keys(done).forEach(function (id) {
+  const card = document.querySelector('#live .card[data-id="' + id + '"]');
+  if (card) {
+    const ghost = buildDoneCard(card, "");
+    card.remove();
+    doneList.appendChild(ghost);
+  }
 });
 
 const rb = document.getElementById("refresh");
@@ -212,11 +301,11 @@ if (rb) {
     rb.classList.add("spin");
     const u = new URL(location.href);
     u.searchParams.set("t", Date.now());
-    setTimeout(function () { location.replace(u.toString()); }, 420);
+    setTimeout(function () { location.replace(u.toString()); }, 400);
   });
 }
 
-refresh();
+syncCounts();
 </script>
 </body>
 </html>

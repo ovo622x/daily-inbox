@@ -1,5 +1,7 @@
 # 抓下来的聊天快照，含隐私内容，绝不入库
 data/snapshots/
+data/lists/
+data/probe/
 *.png
 !site/icon.png
 !site/icon-512.png

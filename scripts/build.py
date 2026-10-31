@@ -83,6 +83,27 @@ def render_status(data, override=None):
     return "".join(chips)
 
 
+def render_alert(data):
+    try:
+        with open(STATUS_FILE, encoding="utf-8") as fh:
+            apps = json.load(fh).get("apps", {})
+    except Exception:
+        return ""
+    bad = []
+    for key, meta in data.get("sources", {}).items():
+        info = apps.get(key, {})
+        state = info.get("state")
+        if state in ("blank", "error", "offline", "no-window"):
+            detail = info.get("detail") or STATE_LABELS.get(state, ("", "异常"))[1]
+            bad.append(f"{meta['label']}：{detail}")
+    if not bad:
+        return ""
+    body = "；".join(bad)
+    icon = ('<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.4"/>'
+            '<path d="M8 5.4v3.4"/><path d="M8 11.4v.01"/></svg>')
+    return f'<div class="banner">{icon}<div><b>这次没抓全。</b> {esc(body)}</div></div>'
+
+
 def build(force_example=False, out_path=None):
     if force_example:
         src = os.path.join(ROOT, "data", "state.example.json")
@@ -141,6 +162,8 @@ def build(force_example=False, out_path=None):
                 .replace("__SUBTITLE__", esc(datetime.now().strftime("更新于 %H:%M")))
                 .replace("__LEFT__", str(len(items)))
                 .replace("__STATUS__", render_status(data, demo_status))
+                .replace("__ALERT__", "" if demo_status else render_alert(data))
+                .replace("__DONE_INIT__", "0")
                 .replace("__LEDE__", lede)
                 .replace("__SECTIONS__", "\n".join(blocks))
                 .replace("__NOISE_COUNT__", str(len(noise)))
