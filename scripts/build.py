@@ -54,7 +54,15 @@ def card(it, colors):
 </article>'''
 
 
-def render_status(data):
+def render_status(data, override=None):
+    if override is not None:
+        chips = []
+        for key, meta in data.get("sources", {}).items():
+            state = override.get(key, {}).get("state", "online")
+            cls, word = STATE_LABELS.get(state, ("off", "未检测"))
+            chips.append(f'<span class="chip {cls}"><i></i>{meta["label"]} · {word}</span>')
+        return "".join(chips)
+
     apps = {}
     checked = ""
     try:
@@ -75,10 +83,14 @@ def render_status(data):
     return "".join(chips)
 
 
-def build():
-    src = STATE if os.path.exists(STATE) else os.path.join(ROOT, "data", "state.example.json")
-    if not os.path.exists(STATE):
-        print("未找到 data/state.json，改用 data/state.example.json 生成示例页")
+def build(force_example=False, out_path=None):
+    if force_example:
+        src = os.path.join(ROOT, "data", "state.example.json")
+    else:
+        src = STATE if os.path.exists(STATE) else os.path.join(ROOT, "data", "state.example.json")
+        if not os.path.exists(STATE):
+            print("未找到 data/state.json，改用 data/state.example.json 生成示例页")
+    out = out_path or OUT
     with open(src, encoding="utf-8") as fh:
         data = json.load(fh)
     with open(TEMPLATE, encoding="utf-8") as fh:
@@ -120,11 +132,15 @@ def build():
     lede = "今天有 <strong>%d 件事</strong>要动。%s；另外 %d 条已经当噪音滤掉了。" % (
         len(items), "、".join(parts) or "没有新消息", len(noise))
 
+    demo_status = None
+    if force_example:
+        demo_status = {k: {"state": "online"} for k in data.get("sources", {})}
+
     out_html = (tpl
                 .replace("__DAY__", esc(data.get("day", "")))
                 .replace("__SUBTITLE__", esc(datetime.now().strftime("更新于 %H:%M")))
                 .replace("__LEFT__", str(len(items)))
-                .replace("__STATUS__", render_status(data))
+                .replace("__STATUS__", render_status(data, demo_status))
                 .replace("__LEDE__", lede)
                 .replace("__SECTIONS__", "\n".join(blocks))
                 .replace("__NOISE_COUNT__", str(len(noise)))
@@ -132,11 +148,17 @@ def build():
                 .replace("__UPDATED__", esc(data.get("updated", "").replace("T", " ")[5:16]))
                 .replace("__TOTAL__", str(len(items))))
 
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    with open(OUT, "w", encoding="utf-8") as fh:
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(out, "w", encoding="utf-8") as fh:
         fh.write(out_html)
-    print(f"已生成 {OUT}（{len(items)} 条待办，{len(noise)} 条噪音）")
+    print(f"已生成 {out}（{len(items)} 条待办，{len(noise)} 条噪音）")
 
 
 if __name__ == "__main__":
-    build()
+    import argparse
+
+    ap = argparse.ArgumentParser(description="把 state.json 渲染成页面")
+    ap.add_argument("--example", action="store_true", help="强制用示例数据")
+    ap.add_argument("--out", help="输出文件路径，默认 site/index.html")
+    args = ap.parse_args()
+    build(force_example=args.example, out_path=args.out)

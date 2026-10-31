@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;overflow-x:hidden}
 body{
   background:#F4F3F0;color:#1C1C1A;
   font-family:"Source Han Sans SC","SourceHanSansSC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
@@ -177,14 +177,15 @@ function saveDone(o) {
 let done = loadDone();
 
 function refresh() {
-  let n = 0;
+  let left = 0;
   document.querySelectorAll(".card").forEach(function (c) {
-    const id = c.dataset.id;
-    if (done[id]) { c.classList.add("done"); } else { c.classList.remove("done"); n++; }
+    if (done[c.dataset.id]) { c.classList.add("done"); }
+    else { c.classList.remove("done"); left++; }
   });
-  document.getElementById("left").textContent = n;
-  const tallied = document.querySelectorAll(".card").length - n;
-  document.querySelector(".tally span").textContent = tallied > 0 ? "待处理·已清 " + tallied : "全清了";
+  document.getElementById("left").textContent = left;
+  const cleared = TOTAL - left;
+  document.querySelector(".tally span").textContent =
+    left === 0 ? "全清了" : (cleared > 0 ? "待处理 · 已清" + cleared : "待处理");
 }
 
 document.querySelectorAll(".btn").forEach(function (b) {

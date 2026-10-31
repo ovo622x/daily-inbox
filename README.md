@@ -4,6 +4,14 @@
 
 这个工具把两块屏幕收敛成**一张每天更新的待办页**。装到手机主屏，打开就知道今天要动哪几件事。
 
+<p align="center">
+  <img src="docs/screenshot.png" width="300" alt="页面示例">
+</p>
+
+<p align="center">
+  <a href="https://ovo622x.github.io/daily-inbox/">在线看示例</a>
+</p>
+
 它不做「通知聚合」。聚合只会让信息更多更乱。它做的是过滤——
 **只留下需要你动作的事，其余当作噪音丢掉。**
 
@@ -114,6 +122,19 @@ iPhone 用 Safari 打开链接 → 分享 → 添加到主屏幕，它就是一�
 3. 窗口被其他窗口完全遮挡时可能抓到空白，`status.json` 会把它标成 `blank`。
 4. **做不到实时提醒**。手机端拿不到系统通知，这个工具保证你打开后不漏，不保证第一时间推你。
 5. 识别质量取决于你用的模型。换模型需要重跑一遍，脚本不负责判断内容。
+
+## 目录
+
+| 路径 | 说明 |
+| --- | --- |
+| `run.py` | 一键入口，采集 + 构建 |
+| `scripts/winctl.py` | 窗口发现与 PrintWindow 截图 |
+| `scripts/collect.py` | 采集画面，写在线状态 |
+| `scripts/build.py` | `state.json` → 页面 |
+| `scripts/shot.py` | 生成文档配图（调 Chrome CDP，仅开发用） |
+| `site/template.html` | 页面模板 |
+| `demo/` | 用示例数据生成的静态示例，托管在 Pages 上 |
+| `docs/extract-prompt.md` | 截图提取提示词 |
 
 ## 隐私
 

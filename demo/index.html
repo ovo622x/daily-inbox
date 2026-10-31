@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="今日通知">
+<meta name="theme-color" content="#F4F3F0">
+<title>今日通知</title>
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overflow-x:hidden}
+body{
+  background:#F4F3F0;color:#1C1C1A;
+  font-family:"Source Han Sans SC","SourceHanSansSC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(40px + env(safe-area-inset-bottom));
+}
+.wrap{max-width:520px;margin:0 auto;padding:0 16px}
+
+header{
+  position:sticky;top:0;z-index:20;
+  margin:0 -16px;padding:calc(13px + env(safe-area-inset-top)) 18px 11px;
+  background:rgba(244,243,240,.76);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  backdrop-filter:blur(24px) saturate(180%);
+  border-bottom:1px solid rgba(0,0,0,.06);
+}
+.hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hd2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}
+.day{font-size:21px;font-weight:500;letter-spacing:-.01em}
+.sub{font-size:12.5px;color:#8A8A83;margin-top:3px}
+.tally{display:flex;align-items:baseline;gap:5px;flex:none}
+.tally b{font-size:20px;font-weight:500;letter-spacing:-.02em}
+.tally span{font-size:11px;color:#9C9C95}
+
+.refresh{
+  flex:none;width:34px;height:34px;border-radius:50%;
+  border:1px solid rgba(0,0,0,.07);background:rgba(255,255,255,.8);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  transition:transform .2s ease,background .2s ease;
+}
+.refresh:active{transform:scale(.9);background:#fff}
+.refresh svg{width:16px;height:16px;stroke:#4A4A45;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.refresh.spin svg{animation:spin .65s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.status{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#6E6E68;
+  padding:4px 9px;border-radius:99px;white-space:nowrap;
+  background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.06);
+}
+.chip i{width:6px;height:6px;border-radius:50%;background:#C4C4BC;flex:none}
+.chip.on i{background:#2FA84F;box-shadow:0 0 0 3px rgba(47,168,79,.14)}
+.chip.warn i{background:#DFA02F;box-shadow:0 0 0 3px rgba(223,160,47,.16)}
+.chip.off{color:#A8A8A1}
+
+.lede{font-size:13px;color:#6E6E68;line-height:1.65;padding:16px 2px 4px}
+.lede strong{color:#1C1C1A;font-weight:500}
+
+h2{
+  font-size:12px;font-weight:500;color:#9C9C95;letter-spacing:.06em;
+  margin:26px 0 10px 4px;display:flex;align-items:center;gap:8px;
+}
+h2 em{font-style:normal;color:#C4C4BC;font-weight:400;letter-spacing:0}
+
+.card{
+  position:relative;background:#fff;border-radius:18px;
+  padding:13px 14px 13px 16px;margin-bottom:9px;
+  border:1px solid rgba(0,0,0,.055);
+  box-shadow:0 1px 2px rgba(20,20,20,.035);
+  display:flex;gap:12px;align-items:flex-start;
+  transition:opacity .18s ease,transform .18s ease;
+}
+.card::before{
+  content:"";position:absolute;left:0;top:15px;bottom:15px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--c);
+}
+.body{flex:1;min-width:0}
+.meta{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#9C9C95;margin-bottom:6px}
+.src{color:#6E6E68;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%}
+.meta .t{margin-left:auto;flex:none}
+.text{font-size:13.5px;line-height:1.55;color:#1C1C1A;word-break:break-word}
+.act{
+  margin-top:9px;font-size:12.5px;line-height:1.5;color:#4A4A45;
+  background:#F8F8F5;border-radius:10px;padding:7px 10px;
+  display:flex;gap:7px;
+}
+.act::before{content:"→";color:#B4B4AC;flex:none}
+.dl{
+  display:inline-flex;align-items:center;gap:5px;margin-top:8px;
+  font-size:11.5px;font-weight:500;padding:4px 9px;border-radius:99px;
+  background:#FDF2E8;color:#B45309;
+}
+.dl.hot{background:#FDECEC;color:#C0392B}
+
+.btn{
+  flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(0,0,0,.16);
+  background:transparent;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;margin-top:1px;transition:all .18s ease;
+}
+.btn svg{opacity:0;width:14px;height:14px;transition:opacity .15s}
+.card.done{opacity:.38}
+.card.done .text{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.3)}
+.card.done .btn{background:#1C1C1A;border-color:#1C1C1A}
+.card.done .btn svg{opacity:1}
+
+details.noise{margin-top:26px}
+details.noise summary{
+  font-size:12px;color:#9C9C95;cursor:pointer;list-style:none;
+  padding:12px 4px;display:flex;align-items:center;gap:6px;
+}
+details.noise summary::-webkit-details-marker{display:none}
+details.noise summary::after{content:"展开";margin-left:auto;font-size:11px;color:#B4B4AC}
+details.noise[open] summary::after{content:"收起"}
+.nrow{
+  font-size:12.5px;color:#8A8A83;padding:9px 4px;border-top:1px solid rgba(0,0,0,.05);
+  display:flex;gap:8px;align-items:baseline;
+}
+.nrow b{font-weight:500;color:#6E6E68;flex:none;max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nrow i{font-style:normal;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nrow s{flex:none;font-size:11px;color:#C4C4BC;text-decoration:none}
+
+footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="hd">
+      <div>
+        <div class="day">11月3日 周一</div>
+        <div class="sub">更新于 17:31</div>
+      </div>
+      <button class="refresh" id="refresh" aria-label="刷新">
+        <svg viewBox="0 0 20 20"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/><path d="M16.8 3.2v3.4h-3.4"/></svg>
+      </button>
+    </div>
+    <div class="hd2">
+      <div class="status"><span class="chip on"><i></i>微信 · 在线</span><span class="chip on"><i></i>钉钉 · 在线</span></div>
+      <div class="tally"><b id="left">7</b><span>待处理</span></div>
+    </div>
+  </header>
+
+  <p class="lede">今天有 <strong>7 件事</strong>要动。微信 3 条、钉钉 4 条；另外 8 条已经当噪音滤掉了。</p>
+
+  <h2>催着的 <em>3</em></h2>
+<article class="card" data-id="d3" style="--c:#3296FA">
+  <div class="body">
+    <div class="meta"><span class="src">设计项目群</span><span class="t">今天 09:12</span></div>
+    <div class="text">[DING] 样例图请在今天中午 12 点前发到群里，客户下午要看 @所有人</div>
+    <div class="act">12 点已经过了。先单独问一句还收不收，别直接往群里发</div>
+    <span class="dl hot">今天 12:00（已过）</span>
+  </div>
+  <button class="btn" aria-label="标记完成"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</article>
+<article class="card" data-id="d1" style="--c:#3296FA">
+  <div class="body">
+    <div class="meta"><span class="src">产品部群</span><span class="t">今天 15:40</span></div>
+    <div class="text">版本评审改到周四 14:00，提前把改动说明发我</div>
+    <div class="act">写一页改动说明，周四上午前发给对方</div>
+    <span class="dl">周四 14:00</span>
+  </div>
+  <button class="btn" aria-label="标记完成"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</article>
+<article class="card" data-id="d2" style="--c:#3296FA">
+  <div class="body">
+    <div class="meta"><span class="src">陈小雅（HR）</span><span class="t">今天 11:05</span></div>
+    <div class="text">入职材料还差体检报告和银行卡信息，周五前补齐</div>
+    <div class="act">预约体检，顺手把银行卡信息拍了发过去</div>
+    <span class="dl">本周五</span>
+  </div>
+  <button class="btn" aria-label="标记完成"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</article>
+<h2>等你回复 <em>2</em></h2>
+<article class="card" data-id="w1" style="--c:#07C160">
+  <div class="body">
+    <div class="meta"><span class="src">老周</span><span class="t">今天 16:22</span></div>
+    <div class="text">报价单什么时候能给？客户那边在催</div>
+    <div class="act">先回个时间点，哪怕说明天，别让人干等</div>
+    
+  </div>
+  <button class="btn" aria-label="标记完成"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</article>
+<article class="card" data-id="w2" style="--c:#07C160">
+  <div class="body">
+    <div class="meta"><span class="src">阿 May</span><span class="t">今天 14:08</span></div>
+    <div class="text">上次那组照片修好了吗</div>
+    <div class="act">看一下进度，能发就先发一部分</div>
+    
+  </div>
+  <button class="btn" aria-label="标记完成"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</article>
+<h2>有空再做 <em>2</em></h2>
+<article class="card" data-id="w3" style="--c:#07C160">
+  <div class="body">
+    <div class="meta"><span class="src">排版交流群</span><span class="t">今天 13:30</span></div>
+    <div class="text">@你 帮忙看看这版封面，字距是不是太紧了</div>
+    <div class="act">抽十分钟回个意见，别拖成已读不回</div>
+    
+  </div>
+  <button class="btn" aria-label="标记完成"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</article>
+<article class="card" data-id="d4" style="--c:#3296FA">
+  <div class="body">
+    <div class="meta"><span class="src">工作通知</span><span class="t">11-01</span></div>
+    <div class="text">[公告] 关于开展第四季度办公区消防演练的通知</div>
+    <div class="act">点开看一眼时间，跟自己的外出安排对一下</div>
+    
+  </div>
+  <button class="btn" aria-label="标记完成"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</article>
+
+  <details class="noise">
+    <summary>已过滤 8 条噪音</summary>
+    <div class="nrow"><b>家庭群</b><i>[图片]</i><s>17:02</s></div>
+<div class="nrow"><b>老李</b><i>哈哈哈哈哈</i><s>16:44</s></div>
+<div class="nrow"><b>公众号 · 某摄影号</b><i>今日推送：三支定焦怎么选</i><s>15:11</s></div>
+<div class="nrow"><b>同学群</b><i>收到</i><s>14:20</s></div>
+<div class="nrow"><b>小区团购</b><i>本周团购已开团</i><s>12:03</s></div>
+<div class="nrow"><b>设备维护</b><i>打印机已恢复正常</i><s>10:48</s></div>
+<div class="nrow"><b>考勤助手</b><i>今日打卡成功</i><s>09:01</s></div>
+<div class="nrow"><b>新人入职群</b><i>王某某通过扫码加入群聊</i><s>08:55</s></div>
+  </details>
+
+  <footer>
+    采集于 11-03 20:04 · 来源：电脑版微信 + 电脑版钉钉<br>
+    上方圆点是上次采集那一刻的登录状态。点右上角刷新可拉取最新页面。<br>
+    勾选状态存在本机，刷新不会丢。
+  </footer>
+</div>
+
+<script>
+const TOTAL = 7;
+const KEY = "inbox-done-v1";
+
+function loadDone() {
+  try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; }
+}
+function saveDone(o) {
+  try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {}
+}
+
+let done = loadDone();
+
+function refresh() {
+  let left = 0;
+  document.querySelectorAll(".card").forEach(function (c) {
+    if (done[c.dataset.id]) { c.classList.add("done"); }
+    else { c.classList.remove("done"); left++; }
+  });
+  document.getElementById("left").textContent = left;
+  const cleared = TOTAL - left;
+  document.querySelector(".tally span").textContent =
+    left === 0 ? "全清了" : (cleared > 0 ? "待处理 · 已清" + cleared : "待处理");
+}
+
+document.querySelectorAll(".btn").forEach(function (b) {
+  b.addEventListener("click", function (e) {
+    e.stopPropagation();
+    const card = b.closest(".card");
+    const id = card.dataset.id;
+    if (done[id]) { delete done[id]; } else { done[id] = 1; }
+    saveDone(done);
+    refresh();
+  });
+});
+
+document.querySelectorAll(".card").forEach(function (c) {
+  c.addEventListener("click", function () {
+    const b = c.querySelector(".btn");
+    if (b) b.click();
+  });
+});
+
+const rb = document.getElementById("refresh");
+if (rb) {
+  rb.addEventListener("click", function () {
+    rb.classList.add("spin");
+    const u = new URL(location.href);
+    u.searchParams.set("t", Date.now());
+    setTimeout(function () { location.replace(u.toString()); }, 420);
+  });
+}
+
+refresh();
+</script>
+</body>
+</html>

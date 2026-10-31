@@ -3,6 +3,8 @@ data/snapshots/
 *.png
 !site/icon.png
 !site/icon-512.png
+!docs/screenshot.png
+!demo/icon.png
 
 # 真实提取结果
 data/state.json
