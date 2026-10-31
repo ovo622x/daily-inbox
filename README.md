@@ -133,7 +133,7 @@ iPhone 用 Safari 打开链接 → 分享 → 添加到主屏幕，它就是一�
 | `scripts/build.py` | `state.json` → 页面 |
 | `scripts/shot.py` | 生成文档配图（调 Chrome CDP，仅开发用） |
 | `site/template.html` | 页面模板 |
-| `demo/` | 用示例数据生成的静态示例，托管在 Pages 上 |
+| `docs/` | 文档与提取提示词；`docs/index.html` 是用示例数据生成的在线示例 |
 | `docs/extract-prompt.md` | 截图提取提示词 |
 
 ## 隐私
