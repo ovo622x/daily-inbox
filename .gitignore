@@ -3,6 +3,11 @@ data/snapshots/
 data/lists/
 data/probe/
 *.png
+
+# 密钥
+.env
+.env.local
+data/settings.json
 !site/icon.png
 !site/icon-512.png
 !docs/screenshot.png

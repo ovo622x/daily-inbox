@@ -149,6 +149,41 @@ details.block[open] > summary::after{content:"收起"}
 
 .empty{font-size:12.5px;color:#B4B4AC;padding:14px 4px}
 
+.hdBtns{display:flex;gap:8px;flex:none;align-items:center}
+#settings{display:none}
+.iconBtn{
+  flex:none;width:34px;height:34px;border-radius:50%;
+  border:1px solid rgba(0,0,0,.07);background:rgba(255,255,255,.8);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  transition:transform .2s ease,background .2s ease;
+}
+.iconBtn:active{transform:scale(.9);background:#fff}
+.iconBtn svg{width:15px;height:15px;stroke:#4A4A45;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(28,28,26,.26);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.sheet[hidden]{display:none}
+.sheetCard{width:100%;max-width:344px;background:#fff;border-radius:20px;padding:18px;
+  box-shadow:0 16px 48px rgba(0,0,0,.2)}
+.sheetHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sheetHead h3{font-size:15px;font-weight:500;margin:0}
+.sheetTip{font-size:12px;color:#8A8A83;line-height:1.65;margin:0 0 15px}
+.sheetCard label{display:block;font-size:12px;color:#6E6E68;margin-bottom:11px}
+.sheetCard input{width:100%;margin-top:5px;padding:9px 11px;font-size:13px;border-radius:10px;
+  border:1px solid rgba(0,0,0,.1);background:#FAFAF8;font-family:inherit;color:#1C1C1A}
+.sheetCard input:focus{outline:none;border-color:#1C1C1A;background:#fff}
+.sheetActions{display:flex;gap:8px;margin-top:4px}
+.sheetActions button{flex:1;padding:10px;border-radius:12px;font-size:13px;font-family:inherit;
+  cursor:pointer;border:1px solid rgba(0,0,0,.1);transition:opacity .15s}
+.sheetActions button:active{opacity:.7}
+.ghost{background:#fff;color:#4A4A45}
+.primary{background:#1C1C1A;color:#fff;border-color:#1C1C1A}
+.sheetMsg{font-size:11.5px;margin:11px 0 0;min-height:15px;color:#8A8A83;word-break:break-all;line-height:1.5}
+.sheetMsg.err{color:#C0392B}
+.sheetMsg.ok{color:#2FA84F}
+
 footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:1.8}
 </style>
 </head>
@@ -160,9 +195,14 @@ footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:
         <div class="day">__DAY__</div>
         <div class="sub" id="sub">识别 __UPDATED__ · 画面 __CAPTURED__</div>
       </div>
-      <button class="refresh" id="refresh" aria-label="刷新">
-        <svg viewBox="0 0 20 20"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/><path d="M16.8 3.2v3.4h-3.4"/></svg>
-      </button>
+      <div class="hdBtns">
+        <button class="iconBtn" id="settings" aria-label="配置识别模型">
+          <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.8v2.1M10 15.1v2.1M2.8 10h2.1M15.1 10h2.1M4.9 4.9l1.5 1.5M13.6 13.6l1.5 1.5M15.1 4.9l-1.5 1.5M6.4 13.6l-1.5 1.5"/></svg>
+        </button>
+        <button class="refresh" id="refresh" aria-label="刷新">
+          <svg viewBox="0 0 20 20"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/><path d="M16.8 3.2v3.4h-3.4"/></svg>
+        </button>
+      </div>
     </div>
     <div class="hd2">
       <div class="status">__STATUS__</div>
@@ -195,6 +235,26 @@ footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#B4B4AC;line-height:
     「识别」是模型读出待办的时间，「画面」是最近一次截屏的时间，两者会不一样。<br>
     勾掉的事项收进下面「已清」，点一下可以恢复；记录只存在这台手机上。
   </footer>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheetCard">
+    <div class="sheetHead">
+      <h3>识别模型</h3>
+      <button class="iconBtn" id="sheetClose" aria-label="关闭">
+        <svg viewBox="0 0 20 20"><path d="M6 6l8 8M14 6l-8 8"/></svg>
+      </button>
+    </div>
+    <p class="sheetTip">填你自己的多模态接口。密钥只写进这台电脑的 <code>data/settings.json</code>，不进仓库、不上传。</p>
+    <label>接口地址<input id="fBase" placeholder="https://xxx/v1" autocomplete="off" spellcheck="false"></label>
+    <label>模型名<input id="fModel" placeholder="qwen-vl-max-latest" autocomplete="off" spellcheck="false"></label>
+    <label>API Key<input id="fKey" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false"></label>
+    <div class="sheetActions">
+      <button class="ghost" id="btnTest">测试连通</button>
+      <button class="primary" id="btnSave">保存</button>
+    </div>
+    <p class="sheetMsg" id="sheetMsg"></p>
+  </div>
 </div>
 
 <script>
@@ -347,6 +407,84 @@ if (rb) {
 }
 
 syncCounts();
+
+// ---- 模型配置面板：只有从本机服务打开时才可用 ----
+const sheet = document.getElementById("sheet");
+const gearBtn = document.getElementById("settings");
+const sheetMsg = document.getElementById("sheetMsg");
+const fBase = document.getElementById("fBase");
+const fModel = document.getElementById("fModel");
+const fKey = document.getElementById("fKey");
+
+function say(text, cls) {
+  sheetMsg.textContent = text || "";
+  sheetMsg.className = "sheetMsg" + (cls ? " " + cls : "");
+}
+
+function formBody() {
+  return {
+    apiBase: fBase.value.trim(),
+    apiModel: fModel.value.trim(),
+    apiKey: fKey.value.trim()
+  };
+}
+
+async function openSheet() {
+  say("");
+  try {
+    const s = await (await fetch("/api/settings", { cache: "no-store" })).json();
+    fBase.value = s.apiBase || "";
+    fModel.value = s.apiModel || "";
+    fKey.value = "";
+    fKey.placeholder = s.hasKey ? "已保存 " + s.apiKey + "，留空则不修改" : "sk-…";
+    sheet.hidden = false;
+  } catch (e) {
+    setSub("本机服务没响应");
+  }
+}
+
+if (gearBtn && LIVE) {
+  gearBtn.style.display = "flex";
+  gearBtn.addEventListener("click", openSheet);
+  document.getElementById("sheetClose").addEventListener("click", function () {
+    sheet.hidden = true;
+  });
+  sheet.addEventListener("click", function (e) {
+    if (e.target === sheet) sheet.hidden = true;
+  });
+
+  document.getElementById("btnTest").addEventListener("click", async function () {
+    say("正在测试…");
+    try {
+      const r = await (await fetch("/api/settings/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formBody())
+      })).json();
+      say(r.ok ? "通了：" + (r.message || "接口正常") : "失败：" + r.error, r.ok ? "ok" : "err");
+    } catch (e) {
+      say("请求失败：" + e.message, "err");
+    }
+  });
+
+  document.getElementById("btnSave").addEventListener("click", async function () {
+    try {
+      const r = await (await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formBody())
+      })).json();
+      if (r.ok) {
+        say("已保存", "ok");
+        setTimeout(function () { sheet.hidden = true; }, 700);
+      } else {
+        say(r.error || "保存失败", "err");
+      }
+    } catch (e) {
+      say("保存失败：" + e.message, "err");
+    }
+  });
+}
 </script>
 </body>
 </html>

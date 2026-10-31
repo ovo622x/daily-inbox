@@ -74,6 +74,22 @@ python scripts/collect.py
 
 **2. 提取**
 
+这一步要一个能读图的模型，两种走法。
+
+**走本机服务（推荐，一次配好就全自动）**
+
+```bash
+python scripts/server.py
+```
+
+浏览器打开 `http://127.0.0.1:8765/`，点右上角齿轮，填三样东西：接口地址、模型名、你自己的 API Key。填完点「测试连通」，通了就保存。
+
+密钥只写进这台电脑的 `data/settings.json`，这个文件在 `.gitignore` 里，不进仓库、不上传。之后点页面右上角刷新，会跑完整链路：抓取 → 识别 → 重建，二三十秒出新结果。
+
+接口按 OpenAI 兼容格式调用，通义、智谱、豆包、DeepSeek 这类都行，只要模型支持读图。
+
+**走手动（不配密钥也能用）**
+
 把截图和 [`docs/extract-prompt.md`](docs/extract-prompt.md) 里的提示词一起丢给任意多模态模型，让它输出 JSON，存成 `data/state.json`。
 
 这一步交给模型，不是交给正则。因为它要判断的是「这条消息到底要不要我做事」——比如「12 点前交」如果现在已经 13 点，结论不该是「12 点前交」，而是「已经过期了，先问一句还收不收」。
@@ -133,6 +149,9 @@ iPhone 用 Safari 打开链接 → 分享 → 添加到主屏幕，它就是一�
 | `run.py` | 一键入口，采集 + 构建 |
 | `scripts/winctl.py` | 窗口发现与 PrintWindow 截图 |
 | `scripts/collect.py` | 采集画面，写在线状态 |
+| `scripts/extract_api.py` | 调多模态接口，把截图读成 `state.json` |
+| `scripts/config.py` | 读写本机模型配置 |
+| `scripts/server.py` | 本机实时服务，刷新触发完整链路 |
 | `scripts/build.py` | `state.json` → 页面 |
 | `scripts/shot.py` | 生成文档配图（调 Chrome CDP，仅开发用） |
 | `site/template.html` | 页面模板 |

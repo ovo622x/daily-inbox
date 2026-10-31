@@ -46,12 +46,16 @@ def pipeline():
         logs.append(r.stdout)
         if r.returncode == 0:
             with LOCK:
+                STATE["step"] = "读图识别"
+            r2 = _run(os.path.join(ROOT, "scripts", "extract_api.py"), 600)
+            logs.append(r2.stdout + r2.stderr)
+            with LOCK:
                 STATE["step"] = "生成页面"
             r3 = _run(os.path.join(ROOT, "scripts", "build.py"), 120)
             logs.append(r3.stdout)
             ok = r3.returncode == 0
             with LOCK:
-                STATE["step"] = "已抓取，等待整理"
+                STATE["step"] = "已更新" if r2.returncode == 0 else "已抓取，识别失败"
         else:
             with LOCK:
                 STATE["step"] = "抓取失败"
@@ -88,6 +92,9 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/status":
             with LOCK:
                 return self._json(dict(STATE))
+        if path == "/api/settings":
+            import config
+            return self._json(config.masked())
         if path == "/api/refresh":
             if STATE["running"]:
                 return self._json({"started": False, "reason": "已经在跑了"})
@@ -101,9 +108,64 @@ class Handler(SimpleHTTPRequestHandler):
         except BrokenPipeError:
             pass
 
+    def do_POST(self):
+        path = self.path.split("?")[0]
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except Exception:
+            return self._json({"ok": False, "error": "请求体不是 JSON"}, 400)
+
+        import config
+
+        if path == "/api/settings":
+            if not body.get("apiKey") or "…" in str(body.get("apiKey", "")):
+                body.pop("apiKey", None)
+            merged = config.save(body)
+            return self._json({"ok": True, "settings": config.masked(merged)})
+
+        if path == "/api/settings/test":
+            cfg = config.load()
+            if body.get("apiBase"):
+                cfg["apiBase"] = body["apiBase"]
+            if body.get("apiModel"):
+                cfg["apiModel"] = body["apiModel"]
+            if body.get("apiKey") and "…" not in body["apiKey"]:
+                cfg["apiKey"] = body["apiKey"]
+            missing = [k for k in ("apiBase", "apiModel", "apiKey") if not cfg.get(k)]
+            if missing:
+                return self._json({"ok": False, "error": "还缺 " + "、".join(missing)})
+            return self._json(test_api(cfg))
+
+        self._json({"ok": False, "error": "未知接口"}, 404)
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-store, max-age=0")
         super().end_headers()
+
+
+def test_api(cfg):
+    """用填好的配置发一次最小请求，确认接口和密钥能用。"""
+    import urllib.error
+    import urllib.request as ur
+
+    body = {"model": cfg["apiModel"],
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 4}
+    req = ur.Request(cfg["apiBase"].rstrip("/") + "/chat/completions",
+                     data=json.dumps(body).encode(), method="POST")
+    req.add_header("Authorization", "Bearer " + cfg["apiKey"])
+    req.add_header("Content-Type", "application/json")
+    opener = ur.build_opener(ur.ProxyHandler({}))
+    try:
+        with opener.open(req, timeout=40) as resp:
+            data = json.load(resp)
+        msg = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        return {"ok": True, "message": (msg or "连通").strip()[:60]}
+    except urllib.error.HTTPError as e:
+        return {"ok": False, "error": f"{e.code} {e.read()[:280].decode('utf-8', 'replace')}"}
+    except Exception as e:
+        return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
 
 def local_ip():
